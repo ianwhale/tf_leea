@@ -151,7 +151,6 @@ def get_mnist():
     def reformat(data, labels):
         return data.reshape((-1, image_size * image_size)).astype(np.float32), \
                labels.astype(np.float32)
-
     return reformat(mnist.train.images, mnist.train.labels),  \
            reformat(mnist.validation.images, mnist.validation.labels), \
            reformat(mnist.test.images, mnist.test.labels)
