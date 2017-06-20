@@ -23,11 +23,13 @@ class Evolver:
     def __init__(self, trainable_variables, evaluator):
         """
         :param trainable_variables: TensorFlow's trainable variables collection.
+        :param evaluator: Evaluator instance with the accuracy metric from TensorFlow.
         """
-
         #
         # Evolutionary Parameters.
         #
+        self.mutation_power = Params.MUTATION_POWER
+        self.mutation_rate = Params.MUTATION_RATE
         self.rate_decay = (1 - Params.MUTATION_RATE_DECAY) ** (1.0 / Params.MAX_GENERATIONS)
         self.power_decay = (1 - Params.MUTATION_POWER_DECAY) ** (1.0 / Params.MAX_GENERATIONS)
         self.population_size = Params.POPULATION_SIZE
@@ -37,6 +39,7 @@ class Evolver:
         self.population = []
 
         self.evaluator = evaluator
+        evaluator.evolver = self
         self.createPopulation()
         self.evaluatePopulation()
 
@@ -74,9 +77,15 @@ class Evolver:
             self.population.append(Genome(copy.deepcopy(self.flattened), Params.INITIAL_WEIGHTS_DELTA))
 
     def evaluatePopulation(self):
+        ## TODO: Parellelize me!!
+
         pass
 
     def run(self):
+        """
+        Execute the evolution loop.
+        :return:
+        """
         while self.current_generation <= Params.MAX_GENERATIONS:
             self.current_generation += 1
 
@@ -86,7 +95,14 @@ class Evolver:
             self.produceOffspring()
             self.evaluatePopulation()
 
+            self.mutation_power *= self.power_decay
+            self.mutation_rate *= self.rate_decay
+
     def produceOffspring(self):
+        """
+        Standard genetic algorithm things. Pick the top performers and generate offspring with roulette selection.
+        :return:
+        """
         sorted(self.population, key=lambda genome: genome.fitness)
 
         num_selected = int(Params.POPULATION_SIZE * Params.SELECTION_PROPORTION)
@@ -102,6 +118,7 @@ class Evolver:
         for mating in matings:
             index = wheel.throw()
 
+            ## Determine asexual or sexual reproduction.
             if r.random < Params.SEX_PROPORTION:
                 mating[0] = index
 
@@ -114,17 +131,23 @@ class Evolver:
                 mating[0] = index
 
         new_generation = []
+
         ## TODO: Paralellize me?
         for mating in matings:
             if mating[1] > INT_MIN:
                 ## Sexual reproduction
-                child = self.population[mating[0]].reproduce(self.population[mating[1]])
+                child = self.population[mating[0]].reproduce(self.mutation_power,
+                                                             self.mutation_rate,
+                                                             self.population[mating[1]])
+
+                ## Fitness inheritance scheme.
                 child.fitness = (self.population[mating[0]].fitness +
                                  self.population[mating[1]].fitness) / 2
 
             else:
                 ## Asexual reproduction
-                child = self.population[mating[0]].repdroduce()
+                child = self.population[mating[0]].repdroduce(self.mutation_power,
+                                                              self.mutation_rate)
                 child.fitness = self.population[mating[0]].fitness
 
             new_generation.append(child)
@@ -148,8 +171,20 @@ class Evolver:
 class Evaluator:
     """
     """
-    def __init__(self, ):
+    def __init__(self, loss):
         """
         Needs outside support from TensorFlow to get evaluation metrics.
+        :param measure: measure of network accuracy
         """
+        self.evolver = None ## Needs to be set!
+        self.loss = loss ## The loss function from TensorFlow.
+        pass
+
+    def checkIfSetup(self):
+        if not self.evolver:
+            raise AttributeError("Need to set evaluator before calling this function!")
+
+    def evaluate(self, batch):
+        self.checkIfSetup()
+
         pass

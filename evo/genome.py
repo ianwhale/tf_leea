@@ -6,7 +6,6 @@
 
 import copy
 import random as r
-from .params import Params
 
 class Genome:
     """
@@ -31,15 +30,17 @@ class Genome:
         for i in range(len(self.weights)):
             self.weights[i] = r.random() * delta * 2 - delta
 
-    def reproduce(self, parent2=None):
+    def reproduce(self, mutation_power, mutation_rate, parent2=None):
         """
         Create a new genome.
+        :param mutation_power: how much to perturb a value by
+        :param mutation_rate: how often to mutate
         :param parent2:
         :return: Genome
         """
-        return self.sexual(parent2) if parent2 else self.asexual()
+        return self.sexual(parent2) if parent2 else self.asexual(mutation_power, mutation_rate)
 
-    def asexual(self):
+    def asexual(self, mutation_power, mutation_rate):
         """
         Asexual reproduction with mutation only.
 
@@ -48,8 +49,8 @@ class Genome:
         child = copy.deepcopy(self)
 
         for i in range(len(child.weights)):
-            if r.random() < Params.MUTATION_RATE:
-                child.weights[i] += (float)(r.random() * Params.MUTATION_POWER * 2 - Params.MUTATION_POWER)
+            if r.random() < mutation_rate:
+                child.weights[i] += float(r.random() * mutation_power * 2 - mutation_power)
 
         return child
 
@@ -58,7 +59,7 @@ class Genome:
         Sexual reproduction with n-point crossover.
 
         :param parent2: another Genome
-        :return:
+        :return: Genome
         """
         child = copy.deepcopy(self)
 
