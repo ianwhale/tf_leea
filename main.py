@@ -14,6 +14,7 @@ from utils.loaders import load_and_pickle_mnist
 
 SEED = 42 # Should be taken from command line
 r.seed(SEED)
+tf.set_random_seed(SEED)
 
 image_size = 28
 num_labels = 10

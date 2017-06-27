@@ -77,6 +77,23 @@ class Evolver:
 
         return unflattened
 
+    @staticmethod
+    def restore_variables(variables, session, *matrices):
+        """
+        Put the provided matrices into the variables.
+        :param variables: list of tf.Variables.
+        :param session: the tf.session
+        :param matrices: list of np.arrays (can be vectors or matrices), likely unflattened in Evolver.unflatten_tensors
+        :return list: variables with whatever values were in the matrices.
+        """
+        for i in range(len(variables)):
+            op = variables[i].assign(matrices[i])
+            session.run(op)
+
+        return variables
+
+
+
     def createPopulation(self):
         """
         Create the initial random population of genomes.
@@ -110,7 +127,6 @@ class Evolver:
     def produceOffspring(self):
         """
         Standard genetic algorithm things. Pick the top performers and generate offspring with roulette selection.
-        :return:
         """
         sorted(self.population, key=lambda genome: genome.fitness)
 
@@ -183,7 +199,7 @@ class Evaluator:
     def __init__(self, loss):
         """
         Needs outside support from TensorFlow to get evaluation metrics.
-        :param measure: measure of network accuracy
+        :param loss: measure of network accuracy
         """
         self.evolver = None ## Needs to be set!
         self.loss = loss ## The loss function from TensorFlow.
@@ -196,4 +212,5 @@ class Evaluator:
     def evaluate(self, batch):
         self.checkIfSetup()
 
-        pass
+        for individual in self.evolver.population:
+            pass
