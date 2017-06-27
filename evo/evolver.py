@@ -34,8 +34,8 @@ class Evolver:
         self.power_decay = (1 - Params.MUTATION_POWER_DECAY) ** (1.0 / Params.MAX_GENERATIONS)
         self.population_size = Params.POPULATION_SIZE
         self.current_generation = 0
-        self.vars = trainable_variables ## Need to remember to rebuild the tensors.
-        self.flattened = self.flatten_tensors()
+        self.variables = trainable_variables ## Need to remember to rebuild the tensors.
+        self.flattened = Evolver.flatten_tensors(trainable_variables)
         self.population = []
 
         self.evaluator = evaluator
@@ -43,30 +43,39 @@ class Evolver:
         self.createPopulation()
         self.evaluatePopulation()
 
-    def flatten_tensors(self):
+    @staticmethod
+    def flatten_tensors(variables):
         """
         Turn all trainable variables into a real valued vector.
+        :param variables: flatten me
         :return np.array:
         """
-        to_flatten = tuple(var.eval().flatten() for var in self.vars)
+        to_flatten = tuple(var.eval().flatten() for var in variables)
         return np.concatenate(to_flatten)
 
-    def unflatten(self, vector):
+    @staticmethod
+    def unflatten_tensors(vector, variables):
         """
         Unflatten a vector into a list of np.array's with the appropriate shapes.
         :param vector:
+        :param variables: unflatten me
         :return:
         """
         unflattened = []
         initial = 0
-        for var in self.vars:
-            slice = var.get_shape()[0] * var.get_shape[1] ## How many entries we need to slice from genome.
+        for var in variables:
+            shape_list = var.get_shape().as_list()
 
-            unflattened.append(vector[initial : initial + slice].reshape(var.get_shape()[0], var.get_shape()[1]))
+            slice = 1
+            for i in range(len(shape_list)):
+                slice *= shape_list[i] ## How many entries to slice from the genome.
+
+            new_shape = tuple(shape_list[i] for i in range(len(shape_list)))
+
+            unflattened.append(vector[initial : initial + slice].reshape(new_shape))
             initial += slice
 
         return unflattened
-
 
     def createPopulation(self):
         """
@@ -182,7 +191,7 @@ class Evaluator:
 
     def checkIfSetup(self):
         if not self.evolver:
-            raise AttributeError("Need to set evaluator before calling this function!")
+            raise AttributeError("Need to set evolver before calling this function!")
 
     def evaluate(self, batch):
         self.checkIfSetup()

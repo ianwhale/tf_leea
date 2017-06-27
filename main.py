@@ -137,13 +137,15 @@ def leea_experiment():
         lay1_test = tf.nn.relu(tf.matmul(tf_test_dataset, weights1) + biases1)
         test_prediction = tf.nn.softmax(tf.matmul(lay1_test, weights2) + biases2)
 
-    # op = tf.variables_initializer(tf.trainable_variables())
-    # session.run(op)
-    # for var in tf.trainable_variables():
-    # print(var.eval())
-    #
-    # evaluator = Evaluator(tf.contrib.losses.softmax_cross_entropy)
-    # evolver = Evolver(tf.trainable_variables(), evaluator)
+    with tf.Session(graph=graph) as session:
+        op = tf.variables_initializer(tf.trainable_variables())
+        session.run(op)
+
+        for var in tf.trainable_variables():
+            print(var.eval())
+
+        evaluator = Evaluator(tf.contrib.losses.softmax_cross_entropy) ## Take in the loss as a function (rather than TF operation).
+        evolver = Evolver(tf.trainable_variables(), evaluator)
 
 def get_mnist():
     mnist = load_and_pickle_mnist()
