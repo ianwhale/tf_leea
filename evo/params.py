@@ -5,7 +5,7 @@
 #
 
 class Params:
-    POPULATION_SIZE = 1000
+    POPULATION_SIZE = 50
     MAX_GENERATIONS = 2000 #2e6
     SAMPLE_COUNT = 2                ## 2 examples each evaluation.
     MUTATION_POWER = 0.03           ## Maximum size of mutation
@@ -17,3 +17,4 @@ class Params:
     INITIAL_WEIGHTS_DELTA = 1       ## Initial weights range from [ -W_D, W_D ]
     FITNESS_DECAY_RATE = 0.2        ## .2 = 20% decay per evaluation
     TRACKING_STRIDE = 1000          ## Every n generations, print out info
+    LOW_FITNESS_BETTER = True       ## Is lower fitness better?

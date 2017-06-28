@@ -9,6 +9,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL']='2' # Disable annoying warnings.
 import random as r
 import numpy as np
 import tensorflow as tf
+from evo.params import Params
 from evo.evolver import Evolver, Evaluator
 from utils.loaders import load_and_pickle_mnist
 
@@ -98,7 +99,6 @@ def leea_experiment():
     Optimize a neural network with LEEA and the MNIST dataset.
     :return:
     """
-    batch_size = 128
     layer_1_hidden_nodes = 80  ## Starting small so my computer can keep up with the ram requirements of LEEA :)
 
     (train_dataset, train_labels), (valid_dataset, valid_labels), (test_dataset, test_labels) = get_mnist()
@@ -108,8 +108,8 @@ def leea_experiment():
     with graph.as_default():
         ## Data variables.
         tf_train_dataset = tf.placeholder(tf.float32,
-                                          shape=(batch_size, image_size * image_size))
-        tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+                                          shape=(Params.SAMPLE_COUNT, image_size * image_size))
+        tf_train_labels = tf.placeholder(tf.float32, shape=(Params.SAMPLE_COUNT, num_labels))
         tf_valid_dataset = tf.constant(valid_dataset)
         tf_test_dataset = tf.constant(test_dataset)
 
@@ -142,11 +142,17 @@ def leea_experiment():
         op = tf.variables_initializer(tf.trainable_variables())
         session.run(op)
 
-        for var in tf.trainable_variables():
-            print(var.eval())
-
-        evaluator = Evaluator(tf.contrib.losses.softmax_cross_entropy) ## Take in the loss as a function (rather than TF operation).
+        evaluator = Evaluator(session, loss, train_prediction) ## Take in the loss as a function (rather than TF operation).
         evolver = Evolver(tf.trainable_variables(), evaluator)
+
+        for gen in range(Params.MAX_GENERATIONS):
+            print("Generation: ", gen)
+            offset = (gen * Params.SAMPLE_COUNT) % (train_labels.shape[0] - Params.SAMPLE_COUNT)
+
+            batch_data = train_dataset[offset:(offset + Params.SAMPLE_COUNT), :]
+            batch_labels = train_labels[offset:(offset + Params.SAMPLE_COUNT), :]
+
+            evolver.doGeneration({tf_train_dataset: batch_data, tf_train_labels: batch_labels})
 
 def get_mnist():
     mnist = load_and_pickle_mnist()
@@ -156,7 +162,7 @@ def get_mnist():
                labels.astype(np.float32)
     return reformat(mnist.train.images, mnist.train.labels),  \
            reformat(mnist.validation.images, mnist.validation.labels), \
-           reformat(mnist.test.images, mnist.test.labels)
+       reformat(mnist.test.images, mnist.test.labels)
 
 if __name__ == '__main__':
     # Optimize with Stochastic Gradient Descent.

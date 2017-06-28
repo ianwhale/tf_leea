@@ -41,7 +41,6 @@ class Evolver:
         self.evaluator = evaluator
         evaluator.evolver = self
         self.createPopulation()
-        self.evaluatePopulation()
 
     @staticmethod
     def flatten_tensors(variables):
@@ -92,8 +91,6 @@ class Evolver:
 
         return variables
 
-
-
     def createPopulation(self):
         """
         Create the initial random population of genomes.
@@ -102,33 +99,27 @@ class Evolver:
         for _ in range(self.population_size):
             self.population.append(Genome(copy.deepcopy(self.flattened), Params.INITIAL_WEIGHTS_DELTA))
 
-    def evaluatePopulation(self):
-        ## TODO: Parellelize me!!
-
-        pass
-
-    def run(self):
+    def doGeneration(self, feed_dict):
         """
         Execute the evolution loop.
         :return:
         """
-        while self.current_generation <= Params.MAX_GENERATIONS:
-            self.current_generation += 1
+        self.current_generation += 1
 
-            if (self.current_generation % Params.TRACKING_STRIDE) == 0:
-                self.updateStats()
+        if (self.current_generation % Params.TRACKING_STRIDE) == 0:
+            self.updateStats()
 
-            self.produceOffspring()
-            self.evaluatePopulation()
+        self.evaluator.evaluate(feed_dict)
+        # self.produceOffspring()
 
-            self.mutation_power *= self.power_decay
-            self.mutation_rate *= self.rate_decay
+        self.mutation_power *= self.power_decay
+        self.mutation_rate *= self.rate_decay
 
     def produceOffspring(self):
         """
         Standard genetic algorithm things. Pick the top performers and generate offspring with roulette selection.
         """
-        sorted(self.population, key=lambda genome: genome.fitness)
+        sorted(self.population, key=lambda genome: genome.fitness, reverse=Params.LOW_FITNESS_BETTER)
 
         num_selected = int(Params.POPULATION_SIZE * Params.SELECTION_PROPORTION)
 
@@ -188,29 +179,39 @@ class Evolver:
     def updateStats(self):
         pass
 
-    @staticmethod
-    def accuracy(predictions, labels):
-        return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
-                / predictions.shape[0])
-
 class Evaluator:
     """
     """
-    def __init__(self, loss):
+    def __init__(self, session, loss, final_op):
         """
         Needs outside support from TensorFlow to get evaluation metrics.
+        :param session: the tf.session
         :param loss: measure of network accuracy
+        :param final_op: the final operation, serving as the output of the neural network
         """
         self.evolver = None ## Needs to be set!
-        self.loss = loss ## The loss function from TensorFlow.
+        self.session = session
+        self.loss = loss
+        self.final_op = final_op
         pass
 
     def checkIfSetup(self):
         if not self.evolver:
             raise AttributeError("Need to set evolver before calling this function!")
 
-    def evaluate(self, batch):
+    def evaluate(self, feed_dict):
         self.checkIfSetup()
 
+        min_loss = -INT_MIN
+
         for individual in self.evolver.population:
-            pass
+            variables = self.evolver.restore_variables(self.evolver.variables,
+                                                       self.session,
+                                                       *self.evolver.unflatten_tensors(individual.weights, self.evolver.variables))
+
+            calc_loss = self.session.run(self.loss, feed_dict=feed_dict)
+
+            min_loss = calc_loss if calc_loss < min_loss else min_loss
+            individual.fitness = calc_loss
+
+        print("Minimum loss this generation: ", min_loss)
