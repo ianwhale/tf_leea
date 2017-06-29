@@ -4,14 +4,20 @@
 
 import random as r
 
+def abs_sum(items):
+    val = 0
+    for x in items:
+        val += abs(x)
+    return val
+
 class RouletteWheel:
     """
     Roulette wheel class used for selection.
     """
 
     def __init__(self, probabilities):
-        self.probabilities = probabilities
-        self.total = sum(probabilities)
+        self.probabilities = [abs(n) for n in probabilities]
+        self.total = abs_sum(probabilities)
         self.labels = [i for i in range(len(probabilities))]
 
     def throw(self):

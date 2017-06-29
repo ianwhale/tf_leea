@@ -154,6 +154,17 @@ def leea_experiment():
 
             evolver.doGeneration({tf_train_dataset: batch_data, tf_train_labels: batch_labels})
 
+        best = evolver.getBest()
+
+        evolver.restore_variables(evolver.variables,
+                                              session,
+                                              *evolver.unflatten_tensors(best.weights, evolver.variables))
+
+        print("Minimum achieved loss: %f" % (-1 * best.fitness))
+        print("Validation accuracy: %.1f%%" % accuracy(valid_prediction.eval(), valid_labels))
+        print("Test accuracy: %f%%" % accuracy(test_prediction.eval(), test_labels))
+
+
 def get_mnist():
     mnist = load_and_pickle_mnist()
 

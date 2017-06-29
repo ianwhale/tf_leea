@@ -5,8 +5,8 @@
 #
 
 class Params:
-    POPULATION_SIZE = 50
-    MAX_GENERATIONS = 2000 #2e6
+    POPULATION_SIZE = 20
+    MAX_GENERATIONS = 2
     SAMPLE_COUNT = 2                ## 2 examples each evaluation.
     MUTATION_POWER = 0.03           ## Maximum size of mutation
     MUTATION_POWER_DECAY = 0.99     ## Power decayed gradually, 0 disables 1 will leave 0 mutation power at last generation

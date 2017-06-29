@@ -91,6 +91,14 @@ class Evolver:
 
         return variables
 
+    def getBest(self):
+        """
+        Get the best individual.
+        :return Genome:
+        """
+        self.population.sort(key=lambda genome: genome.fitness, reverse=Params.LOW_FITNESS_BETTER)
+        return self.population[0]
+
     def createPopulation(self):
         """
         Create the initial random population of genomes.
@@ -110,7 +118,7 @@ class Evolver:
             self.updateStats()
 
         self.evaluator.evaluate(feed_dict)
-        # self.produceOffspring()
+        self.produceOffspring()
 
         self.mutation_power *= self.power_decay
         self.mutation_rate *= self.rate_decay
@@ -119,13 +127,13 @@ class Evolver:
         """
         Standard genetic algorithm things. Pick the top performers and generate offspring with roulette selection.
         """
-        sorted(self.population, key=lambda genome: genome.fitness, reverse=Params.LOW_FITNESS_BETTER)
+        self.population.sort(key=lambda genome: genome.fitness, reverse=Params.LOW_FITNESS_BETTER)
 
         num_selected = int(Params.POPULATION_SIZE * Params.SELECTION_PROPORTION)
 
         probabilities = []
         for i in range(num_selected):
-            probabilities.append(self.population[i])
+            probabilities.append(self.population[i].fitness)
 
         wheel = RouletteWheel(probabilities)
 
@@ -135,7 +143,7 @@ class Evolver:
             index = wheel.throw()
 
             ## Determine asexual or sexual reproduction.
-            if r.random < Params.SEX_PROPORTION:
+            if r.random() < Params.SEX_PROPORTION:
                 mating[0] = index
 
                 parent2 = index
@@ -152,9 +160,7 @@ class Evolver:
         for mating in matings:
             if mating[1] > INT_MIN:
                 ## Sexual reproduction
-                child = self.population[mating[0]].reproduce(self.mutation_power,
-                                                             self.mutation_rate,
-                                                             self.population[mating[1]])
+                child = self.population[mating[0]].sexual(self.population[mating[1]])
 
                 ## Fitness inheritance scheme.
                 child.fitness = (self.population[mating[0]].fitness +
@@ -162,7 +168,7 @@ class Evolver:
 
             else:
                 ## Asexual reproduction
-                child = self.population[mating[0]].repdroduce(self.mutation_power,
+                child = self.population[mating[0]].asexual(self.mutation_power,
                                                               self.mutation_rate)
                 child.fitness = self.population[mating[0]].fitness
 
@@ -209,9 +215,9 @@ class Evaluator:
                                                        self.session,
                                                        *self.evolver.unflatten_tensors(individual.weights, self.evolver.variables))
 
-            calc_loss = self.session.run(self.loss, feed_dict=feed_dict)
+            calc_loss = -1 * self.session.run(self.loss, feed_dict=feed_dict)
 
             min_loss = calc_loss if calc_loss < min_loss else min_loss
             individual.fitness = calc_loss
 
-        print("Minimum loss this generation: ", min_loss)
+        print("Minimum loss this generation: ", -1 * min_loss)
